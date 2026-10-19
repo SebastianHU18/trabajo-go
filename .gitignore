@@ -1,0 +1,10 @@
+# pruebas locales de cada integrante, no hacen parte de la entrega
+local/
+
+# binarios y basura del editor
+costenos-narcolepsia
+*.exe
+*.db
+.DS_Store
+.vscode/
+.idea/
