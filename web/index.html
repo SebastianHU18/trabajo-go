@@ -38,6 +38,12 @@
     #mensaje.error { background: #fff0e9; color: #9c3e20; }
     #episodios, #historialGeneral { margin-top: 12px; padding: 13px; background: #f5f9fb; border-radius: 9px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; }
     select, input { background: white; border: 1px solid #bccfd7; border-radius: 8px; padding: 9px; max-width: 100%; }
+    dialog { border: 0; border-radius: 15px; padding: 24px; width: min(420px, 92vw); color: #173044; box-shadow: 0 12px 40px #092f4040; }
+    dialog::backdrop { background: #07384d80; }
+    dialog h2 { margin-bottom: 6px; }
+    dialog p { margin: 0 0 14px; color: #587082; }
+    dialog input { width: 100%; font-size: 15px; }
+    dialog .botones { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
     @media (max-width: 850px) { .columns { grid-template-columns: 1fr; } section { padding: 14px; } }
   </style>
 </head>
@@ -78,6 +84,18 @@
       <div id="historialGeneral">Aún no hay episodios registrados.</div>
     </section>
   </main>
+  <dialog id="modalAtaque">
+    <form method="dialog">
+      <h2>Ataque de sueño</h2>
+      <p id="modalPaciente"></p>
+      <label for="ubicacionAtaque">¿Dónde ocurrió el ataque?</label>
+      <input id="ubicacionAtaque" type="text" required maxlength="80" autocomplete="off">
+      <div class="botones">
+        <button type="submit" value="cancelar" class="secondary" formnovalidate>Cancelar</button>
+        <button type="submit" value="ok">Registrar ataque</button>
+      </div>
+    </form>
+  </dialog>
   <script>
     const $ = (id) => document.getElementById(id);
     async function solicitud(ruta, opciones) {
@@ -126,11 +144,24 @@
         mensaje('Información actualizada. Puedes provocar ataques y despertar pacientes.');
       } catch (e) { mensaje(e.message, true); }
     }
+    // Ventana flotante propia (elemento dialog) en lugar del prompt del navegador.
+    // Devuelve el lugar escrito, o null si se cancela o se cierra con Esc.
+    function pedirUbicacion(id) {
+      const dialogo = $('modalAtaque'), campo = $('ubicacionAtaque');
+      $('modalPaciente').textContent = `Paciente ${id}`;
+      campo.value = 'sala de espera';
+      dialogo.returnValue = '';
+      return new Promise(resolver => {
+        dialogo.addEventListener('close', () => resolver(dialogo.returnValue === 'ok' ? campo.value : null), { once: true });
+        dialogo.showModal();
+        campo.select();
+      });
+    }
     async function accion(id, tipo) {
       try {
         let opciones = { method: 'POST' };
         if (tipo === 'ataque') {
-          const ubicacion = prompt('¿Dónde ocurrió el ataque de sueño?', 'sala de espera');
+          const ubicacion = await pedirUbicacion(id);
           if (ubicacion === null) return;
           if (!ubicacion.trim()) { mensaje('La ubicación es obligatoria.', true); return; }
           opciones.headers = { 'Content-Type': 'application/json' };
