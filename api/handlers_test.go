@@ -39,6 +39,7 @@ func TestEndpointsPacientesAtaquesHabitaciones(t *testing.T) {
 		t.Fatal("el cuarto cupo inexistente debe quedar en pasillo")
 	}
 	check("GET", "/api/medicos/D-1/episodios", nil, 200)
+	check("GET", "/api/episodios", nil, 200)
 	check("POST", "/api/pacientes/P-1/despertar", nil, 200)
 	check("GET", "/api/pacientes/pasillo", nil, 200)
 	check("GET", "/api/medicos/inexistente/episodios", nil, 404)

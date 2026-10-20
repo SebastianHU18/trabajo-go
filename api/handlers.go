@@ -62,6 +62,43 @@ func (s *servidor) severos(w http.ResponseWriter, r *http.Request) {
 	escribirJSON(w, http.StatusOK, s.hospital.VistaSeveros())
 }
 
+// episodioJSON es la vista de un episodio del historial general. Se arma aqui,
+// con los metodos de lectura publicos, para no agregar JSON al paquete hospital.
+type episodioJSON struct {
+	ID         string `json:"id"`
+	Fecha      string `json:"fecha"`
+	PacienteID string `json:"pacienteId"`
+	Atendedor  string `json:"atendedor"`
+	Ubicacion  string `json:"ubicacion"`
+	Habitacion *int   `json:"habitacion"`
+	Resumen    string `json:"resumen"`
+}
+
+// episodios devuelve el historial de todo el hospital, incluidos los episodios
+// atendidos por camilleros, que no aparecen en el historial de ningun medico.
+func (s *servidor) episodios(w http.ResponseWriter, r *http.Request) {
+	if !metodo(w, r, http.MethodGet) {
+		return
+	}
+	historial := s.hospital.Historial()
+	vista := make([]episodioJSON, 0, len(historial))
+	for _, e := range historial {
+		item := episodioJSON{ID: e.ID(), Fecha: e.Fecha().Format("2006-01-02 15:04:05"), Ubicacion: e.Ubicacion(), Resumen: e.Resumen()}
+		if e.Paciente() != nil {
+			item.PacienteID = e.Paciente().ID()
+		}
+		if e.AtendidoPor() != nil {
+			item.Atendedor = e.AtendidoPor().Nombre()
+		}
+		if e.Habitacion() != nil {
+			numero := e.Habitacion().Numero()
+			item.Habitacion = &numero
+		}
+		vista = append(vista, item)
+	}
+	escribirJSON(w, http.StatusOK, vista)
+}
+
 func (s *servidor) pacienteIndividual(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/api/pacientes/pasillo" {
 		if !metodo(w, r, http.MethodGet) {

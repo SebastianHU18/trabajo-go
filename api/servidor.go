@@ -19,6 +19,7 @@ func NuevoServidor(h *hospital.Hospital) http.Handler {
 	mux.HandleFunc("/api/medicos/", s.episodiosMedico)
 	mux.HandleFunc("/api/habitaciones", s.habitaciones)
 	mux.HandleFunc("/api/reportes/severos", s.severos)
+	mux.HandleFunc("/api/episodios", s.episodios)
 	mux.HandleFunc("/", s.pagina)
 	return mux
 }

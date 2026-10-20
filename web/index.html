@@ -36,7 +36,7 @@
     .toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
     #mensaje { margin-top: 18px; padding: 12px 15px; border-radius: 10px; background: #e0f4f6; color: #125364; min-height: 44px; }
     #mensaje.error { background: #fff0e9; color: #9c3e20; }
-    #episodios { margin-top: 12px; padding: 13px; background: #f5f9fb; border-radius: 9px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; }
+    #episodios, #historialGeneral { margin-top: 12px; padding: 13px; background: #f5f9fb; border-radius: 9px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; }
     select, input { background: white; border: 1px solid #bccfd7; border-radius: 8px; padding: 9px; max-width: 100%; }
     @media (max-width: 850px) { .columns { grid-template-columns: 1fr; } section { padding: 14px; } }
   </style>
@@ -73,6 +73,10 @@
       <button id="consultar">Consultar episodios</button>
       <div id="episodios">Selecciona un médico para consultar sus atenciones.</div>
     </section>
+    <section>
+      <h2>Historial general (médicos y camilleros)</h2>
+      <div id="historialGeneral">Aún no hay episodios registrados.</div>
+    </section>
   </main>
   <script>
     const $ = (id) => document.getElementById(id);
@@ -90,10 +94,12 @@
     function celda(fila, valor) { const td = document.createElement('td'); td.textContent = String(valor); fila.appendChild(td); return td; }
     async function cargar() {
       try {
-        const [pacientes, habitaciones, graves, medicos] = await Promise.all([
+        const [pacientes, habitaciones, graves, medicos, historial] = await Promise.all([
           solicitud('/api/pacientes'), solicitud('/api/habitaciones'),
-          solicitud('/api/reportes/severos'), solicitud('/api/medicos')
+          solicitud('/api/reportes/severos'), solicitud('/api/medicos'),
+          solicitud('/api/episodios')
         ]);
+        $('historialGeneral').textContent = historial.length ? historial.map(e => e.resumen).reverse().join('\n') : 'Aún no hay episodios registrados.';
         $('total').textContent = pacientes.length;
         $('pasillo').textContent = pacientes.filter(p => p.estado === 'Dormido en el pasillo').length;
         $('camas').textContent = habitaciones.reduce((s, h) => s + h.capacidad - h.ocupantes, 0);
