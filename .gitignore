@@ -8,3 +8,6 @@ costenos-narcolepsia
 .DS_Store
 .vscode/
 .idea/
+
+# material de estudio y enunciado, no hace parte de la entrega
+docsUtiles/
