@@ -97,9 +97,10 @@
         const [pacientes, habitaciones, graves, medicos, historial] = await Promise.all([
           solicitud('/api/pacientes'), solicitud('/api/habitaciones'),
           solicitud('/api/reportes/severos'), solicitud('/api/medicos'),
-          solicitud('/api/episodios')
+          solicitud('/api/episodios').catch(() => null)
         ]);
-        $('historialGeneral').textContent = historial.length ? historial.map(e => e.resumen).reverse().join('\n') : 'Aún no hay episodios registrados.';
+        $('historialGeneral').textContent = historial === null ? 'No se pudo cargar el historial general. Reinicia el servidor.'
+          : historial.length ? historial.map(e => e.resumen).reverse().join('\n') : 'Aún no hay episodios registrados.';
         $('total').textContent = pacientes.length;
         $('pasillo').textContent = pacientes.filter(p => p.estado === 'Dormido en el pasillo').length;
         $('camas').textContent = habitaciones.reduce((s, h) => s + h.capacidad - h.ocupantes, 0);
