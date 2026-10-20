@@ -6,9 +6,9 @@ Sistema central de gestión del hospital, escrito **estrictamente en Go (Golang)
 
 | Integrante | Bloque |
 | --- | --- |
-| Tomás (completar nombre) | Personas, estados, pacientes, consultas 5.1 y 5.4, bono de concurrencia |
-| Samuel (completar nombre) | Habitaciones, episodios, staff polimórfico, interfaz, bono de interfaz |
-| Sebastián (completar nombre) | Hospital, escenario, tests, documentación e integración |
+| Tomás Garcés | Personas, estados, pacientes, consultas 5.1 y 5.4, bono de concurrencia |
+| Samuel López | Habitaciones, episodios, staff polimórfico, interfaz, bono de interfaz |
+| Sebastián Higuita | Hospital, escenario, tests, documentación e integración |
 
 > **Nota sobre el grupo:** el enunciado indica `Groups: 1 student`, pero este grupo trabaja con una excepción autorizada por el profesor para ser de tres integrantes. Cada integrante se defiende por separado con su factor individual de nota.
 
@@ -16,8 +16,16 @@ Sistema central de gestión del hospital, escrito **estrictamente en Go (Golang)
 
 Requiere Go 1.21 o superior instalado.
 
+El escenario de demostración por consola (secciones 5 y 6):
+
 ```bash
 go run .
+```
+
+La interfaz web del bono (API REST + panel HTML), que queda en `http://localhost:8080`:
+
+```bash
+go run ./cmd/web
 ```
 
 ## Cómo probar
@@ -79,11 +87,19 @@ Un archivo por entidad: ningún archivo tiene dos dueños, para que los merges n
 | `hospital/estados.go` | `EstadoPaciente` y `NivelNarcolepsia` como constantes tipadas, con `String()`. | Tomás |
 | `hospital/paciente.go` | `Paciente` con `Persona` embutida. `SufrirAtaqueDeSueno`, `Despertar`, `Estado`. | Tomás |
 | `hospital/consultas.go` | `PacientesEnPasillo` (5.1) y `ReporteSeveros` (5.4). | Tomás |
+| `hospital/simulacion.go` | Bono: `SimularDia` y `ManejarAtaque`, una goroutine por paciente con el `sync.Mutex`. | Tomás |
+| `hospital/paciente_test.go` | Tests de pacientes, estados y consultas. | Tomás |
 | `hospital/habitacion.go` | `Habitacion` y `EstadoHabitacion`. `EstaDisponible`, `Ocupar`, `Liberar`. | Samuel |
 | `hospital/episodio.go` | `RegistroEpisodio` con `time.Time` y `Resumen()`. | Samuel |
 | `hospital/atendedor.go` | La interfaz `Atendedor`. | Samuel |
 | `hospital/medico.go` | `Medico` con `Persona` embutida. `DiagnosticarPaciente`, `MisEpisodios`, `Atender`. | Samuel |
 | `hospital/camillero.go` | `Camillero`, segundo tipo que cumple `Atendedor`. | Samuel |
+| `hospital/vistas_samuel.go` | Vistas JSON y adaptadores por id (`AtacarPorID`, `DespertarPorID`) que consume la API. | Samuel |
+| `hospital/habitacion_test.go` | Tests de habitaciones y del despacho polimórfico. | Samuel |
+| `api/servidor.go`, `api/handlers.go`, `api/handlers_test.go` | Bono: API REST con `net/http`. | Samuel |
+| `cmd/web/main.go` | Bono: servidor que levanta la API y sirve el frontend. | Samuel |
+| `web/index.html` | Bono: panel HTML/JS que consume la API. | Samuel |
+| `docs/Parte-Samuel.md` | Documentación del bloque de Samuel. | Samuel |
 | `hospital/errores.go` | Los errores previsibles del paquete. | Sebastián |
 | `hospital/hospital.go` | `Hospital`: admitir, contratar, asignar, despachar y el `[]Atendedor`. | Sebastián |
 | `main.go` | El escenario de la sección 6 y la impresión de las cuatro consultas. | Sebastián |
@@ -93,7 +109,7 @@ Un archivo por entidad: ningún archivo tiene dos dueños, para que los merges n
 
 - **Composición en vez de herencia.** `Persona` se embute por valor en `Paciente` y en `Medico`. Así ambos reusan `ID()`, `Nombre()` y `Edad()` sin duplicar campos, y con eso ya cumplen la interfaz `Atendedor` sin reescribir esos métodos. Se embute por **valor** (no por puntero) para que cada entidad tenga su propia identidad y no exista el riesgo de una `Persona` nula que haga estallar `Nombre()`.
 - **Polimorfismo real.** El hospital guarda su personal en un `[]Atendedor` y `DespacharAtencion` recorre y llama a `Atender` **sin preguntar el tipo concreto** (no hay `switch` por tipo ni `.(*Medico)`). `ContratarPersonal(a Atendedor)` permite enganchar en vivo un tipo nuevo (por ejemplo una enfermera) sin tocar el resto.
-- **Encapsulamiento por paquete.** Todos los campos van en minúscula y se leen o modifican por métodos. Un `main` fuera del paquete (ver `local/`) no puede tocar `p.estado`: no compila.
+- **Encapsulamiento por paquete.** Todos los campos van en minúscula y se leen o modifican por métodos. Un programa fuera del paquete `hospital` no puede tocar `p.estado`: no compila; solo accede por métodos como `p.Estado()`. (Cada integrante verificó esto en un banco de pruebas propio que no forma parte de la entrega.)
 - **Estados como constantes tipadas.** `EstadoPaciente`, `NivelNarcolepsia` y `EstadoHabitacion` son tipos con constantes y `String()`, no cadenas sueltas, para que el compilador atrape errores de escritura y se impriman legibles.
 - **Errores, no `panic`.** Los métodos que pueden fallar devuelven `error` como último valor. Los errores previsibles son variables del paquete (`errores.go`) para compararlos con `errors.Is`.
 - **`map[*Paciente]int` en `ReporteSeveros`.** La clave es la identidad del paciente (el puntero), así la consulta por paciente es directa; con un slice de pares habría que recorrer. Es `*Paciente` y no `Paciente` para no copiar el struct y conservar la identidad como clave.
@@ -103,4 +119,4 @@ Un archivo por entidad: ningún archivo tiene dos dueños, para que los merges n
 
 - **Concurrencia (+5%, Tomás):** `hospital/simulacion.go` lanza una goroutine por paciente y protege el estado con el `sync.Mutex` del hospital. Debe correr limpio con `go run -race .`.
   > En Windows, el detector de carreras (`-race`) necesita un compilador de C (gcc) en el PATH; por ejemplo el de MSYS2/MinGW. Sin él, `-race` no compila (el resto del proyecto sí corre normal).
-- **Interfaz (+10%, Samuel):** API REST en `api/` y frontend en `web/` con Gin, declarado en `go.mod` únicamente para la interfaz. El paquete `hospital` no importa `net/http` ni Gin.
+- **Interfaz (+10%, Samuel):** API REST en `api/` (servidor en `cmd/web/`) y frontend en `web/index.html`, construida con `net/http` de la **biblioteca estándar** (sin módulos de terceros: `go.mod` no declara dependencias). El paquete `hospital` **no importa `net/http`**: la capa HTTP vive en `api/` y `cmd/web/`, por lo que el dominio no cambia al agregar la interfaz.
