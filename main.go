@@ -116,6 +116,10 @@ func imprimirReporteSeveros(reporte map[*hospital.Paciente]int) {
 		return pacientes[i].ID() < pacientes[j].ID()
 	})
 	for _, p := range pacientes {
-		fmt.Printf("  %s %-16s %d episodios hoy\n", p.ID(), p.Nombre(), reporte[p])
+		etiqueta := "episodios"
+		if reporte[p] == 1 {
+			etiqueta = "episodio"
+		}
+		fmt.Printf("  %s %-16s %d %s hoy\n", p.ID(), p.Nombre(), reporte[p], etiqueta)
 	}
 }
