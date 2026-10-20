@@ -31,13 +31,13 @@ func main() {
 		_ = h.RegistrarHabitacion(hab)
 	}
 
-	yeimy := hospital.NuevoPaciente("P-001", "Yeimy Padilla", 29, hospital.Severo)
-	wilfrido := hospital.NuevoPaciente("P-002", "Wilfrido Berrio", 41, hospital.Severo)
-	karla := hospital.NuevoPaciente("P-003", "Karla Fontalvo", 33, hospital.Moderado)
-	dagoberto := hospital.NuevoPaciente("P-004", "Dagoberto Movil", 52, hospital.Leve)
-	esther := hospital.NuevoPaciente("P-005", "Esthercita Polo", 26, hospital.Severo)
+	goma := hospital.NuevoPaciente("P-001", "Goma jugador", 29, hospital.Severo)
+	urrego := hospital.NuevoPaciente("P-002", "Urrego galleta", 41, hospital.Severo)
+	chanda := hospital.NuevoPaciente("P-003", "Chanda chambeador", 33, hospital.Moderado)
+	portu := hospital.NuevoPaciente("P-004", "Portu goleador", 52, hospital.Leve)
+	manuela := hospital.NuevoPaciente("P-005", "Manuela paisa", 26, hospital.Severo)
 
-	for _, p := range []*hospital.Paciente{yeimy, wilfrido, karla, dagoberto, esther} {
+	for _, p := range []*hospital.Paciente{goma, urrego, chanda, portu, manuela} {
 		_ = h.AdmitirPaciente(p)
 	}
 
@@ -51,10 +51,10 @@ func main() {
 		ubicacion string
 	}
 	for _, a := range []ataque{
-		{yeimy, "cafeteria"},
-		{wilfrido, "sala de espera"},
-		{karla, "fila de radiologia"},
-		{dagoberto, "pasillo del segundo piso"},
+		{goma, "cafeteria"},
+		{urrego, "sala de espera"},
+		{chanda, "fila de radiologia"},
+		{portu, "pasillo del segundo piso"},
 	} {
 		reg, err := h.DespacharAtencion(a.p, a.ubicacion)
 		if err != nil {
@@ -67,16 +67,16 @@ func main() {
 
 	// --- Un paciente despierta, libera su cama y el del pasillo la recibe.
 	fmt.Println("\n--- Un paciente despierta y cede su habitacion ---")
-	if err := h.DespertarPaciente(yeimy); err != nil {
-		fmt.Printf("  no se pudo despertar a %s: %v\n", yeimy.ID(), err)
+	if err := h.DespertarPaciente(goma); err != nil {
+		fmt.Printf("  no se pudo despertar a %s: %v\n", goma.ID(), err)
 	} else {
-		fmt.Printf("  %s %s despierta y libera su habitacion\n", yeimy.ID(), yeimy.Nombre())
+		fmt.Printf("  %s %s despierta y libera su habitacion\n", goma.ID(), goma.Nombre())
 	}
-	if hab, err := h.AsignarHabitacion(dagoberto); err != nil {
-		fmt.Printf("  %s sigue sin cama: %v\n", dagoberto.ID(), err)
+	if hab, err := h.AsignarHabitacion(portu); err != nil {
+		fmt.Printf("  %s sigue sin cama: %v\n", portu.ID(), err)
 	} else {
 		fmt.Printf("  %s %s pasa del pasillo a la habitacion %d\n",
-			dagoberto.ID(), dagoberto.Nombre(), hab.Numero())
+			portu.ID(), portu.Nombre(), hab.Numero())
 	}
 
 	// --- [5.1] Pacientes dormidos en el pasillo.

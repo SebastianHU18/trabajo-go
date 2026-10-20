@@ -32,7 +32,7 @@ func TestEstadosSeImprimenComoTexto(t *testing.T) {
 // TestPacienteNuevoEstaDespierto verifica el estado inicial y los datos que
 // vienen de la Persona embutida.
 func TestPacienteNuevoEstaDespierto(t *testing.T) {
-	p := NuevoPaciente("P-001", "Yeimy Padilla", 29, Severo)
+	p := NuevoPaciente("P-001", "Goma jugador", 29, Severo)
 
 	if p.Estado() != Despierto {
 		t.Fatalf("un paciente nuevo debe estar Despierto, esta %v", p.Estado())
@@ -41,7 +41,7 @@ func TestPacienteNuevoEstaDespierto(t *testing.T) {
 		t.Fatalf("esperaba nivel Severo, obtuve %v", p.Nivel())
 	}
 	// ID, Nombre y Edad no estan escritos en Paciente: vienen de Persona.
-	if p.ID() != "P-001" || p.Nombre() != "Yeimy Padilla" || p.Edad() != 29 {
+	if p.ID() != "P-001" || p.Nombre() != "Goma jugador" || p.Edad() != 29 {
 		t.Fatalf("la Persona embutida no entrego sus datos: %s %s %d", p.ID(), p.Nombre(), p.Edad())
 	}
 }
@@ -49,7 +49,7 @@ func TestPacienteNuevoEstaDespierto(t *testing.T) {
 // TestAtaqueDejaAlPacienteEnElPasillo verifica que el ataque cambie el estado de
 // verdad (receptor puntero) y guarde la ubicacion.
 func TestAtaqueDejaAlPacienteEnElPasillo(t *testing.T) {
-	p := NuevoPaciente("P-001", "Yeimy Padilla", 29, Severo)
+	p := NuevoPaciente("P-001", "Goma jugador", 29, Severo)
 
 	p.SufrirAtaqueDeSueno("cafeteria")
 
@@ -64,7 +64,7 @@ func TestAtaqueDejaAlPacienteEnElPasillo(t *testing.T) {
 // TestDespertarDosVecesDaError verifica que despertar a quien ya esta despierto
 // devuelva ErrYaDespierto y no un panic.
 func TestDespertarDosVecesDaError(t *testing.T) {
-	p := NuevoPaciente("P-001", "Yeimy Padilla", 29, Severo)
+	p := NuevoPaciente("P-001", "Goma jugador", 29, Severo)
 	p.SufrirAtaqueDeSueno("cafeteria")
 
 	if err := p.Despertar(); err != nil {

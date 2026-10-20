@@ -30,11 +30,11 @@ func main() {
 		}
 	}
 	for _, p := range []*hospital.Paciente{
-		hospital.NuevoPaciente("P-001", "Yeimy Padilla", 29, hospital.Severo),
-		hospital.NuevoPaciente("P-002", "Wilfrido Berrio", 41, hospital.Severo),
-		hospital.NuevoPaciente("P-003", "Karla Fontalvo", 33, hospital.Moderado),
-		hospital.NuevoPaciente("P-004", "Dagoberto Movil", 52, hospital.Leve),
-		hospital.NuevoPaciente("P-005", "Esthercita Polo", 26, hospital.Severo),
+		hospital.NuevoPaciente("P-001", "Goma jugador", 29, hospital.Severo),
+		hospital.NuevoPaciente("P-002", "Urrego galleta", 41, hospital.Severo),
+		hospital.NuevoPaciente("P-003", "Chanda chambeador", 33, hospital.Moderado),
+		hospital.NuevoPaciente("P-004", "Portu goleador", 52, hospital.Leve),
+		hospital.NuevoPaciente("P-005", "Manuela paisa", 26, hospital.Severo),
 	} {
 		if err := h.AdmitirPaciente(p); err != nil {
 			log.Fatal(err)
