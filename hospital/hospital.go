@@ -96,9 +96,9 @@ func (h *Hospital) AsignarHabitacion(p *Paciente) (*Habitacion, error) {
 }
 
 // asignarHabitacionSinCandado hace el trabajo real de buscar y ocupar una cama,
-// SIN tomar el candado. Existe aparte porque sync.Mutex no es reentrante: el
-// metodo publico toma el candado una sola vez y el bono de concurrencia
-// (ManejarAtaque de Tomas) lo reusa desde dentro de su propia seccion critica.
+// SIN tomar el candado. Existe aparte porque sync.Mutex no es reentrante:
+// AsignarHabitacion toma el candado y delega aqui, y DespacharAtencion, que ya
+// lo tiene tomado, la reusa sin volver a bloquear.
 func (h *Hospital) asignarHabitacionSinCandado(p *Paciente) (*Habitacion, error) {
 	for _, hab := range h.habitaciones {
 		if hab.EstaDisponible() {
@@ -122,6 +122,14 @@ func (h *Hospital) asignarHabitacionSinCandado(p *Paciente) (*Habitacion, error)
 func (h *Hospital) DespacharAtencion(p *Paciente, ubicacion string) (RegistroEpisodio, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
+
+	// Solo se atiende el ataque de quien esta despierto. Si el paciente ya
+	// estaba dormido (en pasillo o en cama), despacharlo de nuevo le asignaria
+	// una segunda habitacion sin liberar la primera; por eso se rechaza. Para
+	// re-atenderlo primero hay que despertarlo (eso libera su cama).
+	if p.Estado() != Despierto {
+		return RegistroEpisodio{}, ErrPacienteNoDespierto
+	}
 
 	atendedor := h.siguienteAtendedor()
 	if atendedor == nil {

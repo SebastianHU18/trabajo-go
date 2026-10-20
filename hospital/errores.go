@@ -29,4 +29,9 @@ var (
 
 	// ErrSinPersonal se devuelve al despachar una atencion sin personal.
 	ErrSinPersonal = errors.New("no hay personal disponible para atender")
+
+	// ErrPacienteNoDespierto se devuelve al despachar un ataque de un paciente
+	// que no esta despierto: ya esta dormido y asignarle otra cama lo dejaria
+	// ocupando dos habitaciones.
+	ErrPacienteNoDespierto = errors.New("el paciente no esta despierto")
 )
