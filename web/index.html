@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hospital de los Costeños — Control de narcolepsia</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; color: #173044; background: #edf5f7; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; }
+    header { background: #07384d; color: white; padding: 28px max(20px, calc((100vw - 1160px)/2)); }
+    header h1 { margin: 0 0 5px; font-size: clamp(24px, 3vw, 36px); }
+    header p { margin: 0; color: #d2e7ed; }
+    main { max-width: 1160px; margin: 0 auto; padding: 24px 18px 60px; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+    .stat, section { background: white; border-radius: 15px; border: 1px solid #dce9ee; box-shadow: 0 3px 16px #092f4010; }
+    .stat { padding: 20px; }
+    .stat strong { font-size: 30px; display: block; }
+    .stat span { color: #587082; }
+    .columns { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; margin-top: 16px; }
+    section { padding: 20px; margin-top: 16px; overflow-x: auto; }
+    .columns section { margin-top: 0; }
+    h2 { margin: 0 0 15px; font-size: 18px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    td, th { padding: 11px 9px; border-bottom: 1px solid #e7eff2; text-align: left; }
+    th { color: #567082; font-weight: 600; }
+    tr:last-child td { border-bottom: 0; }
+    .tag { display: inline-block; border-radius: 8px; padding: 4px 8px; font-size: 12px; background: #e7eef5; }
+    .tag.sleep { background: #ffe7bc; color: #714500; }
+    .tag.bed { background: #def7e9; color: #1c6d43; }
+    .actions { display: flex; gap: 5px; flex-wrap: wrap; }
+    button { border: 0; border-radius: 8px; background: #136e80; color: white; padding: 8px 11px; font-weight: 600; cursor: pointer; }
+    button:hover { background: #0b5060; }
+    button.secondary { background: #e7eff4; color: #174157; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    #mensaje { margin-top: 18px; padding: 12px 15px; border-radius: 10px; background: #e0f4f6; color: #125364; min-height: 44px; }
+    #mensaje.error { background: #fff0e9; color: #9c3e20; }
+    #episodios { margin-top: 12px; padding: 13px; background: #f5f9fb; border-radius: 9px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; }
+    select, input { background: white; border: 1px solid #bccfd7; border-radius: 8px; padding: 9px; max-width: 100%; }
+    @media (max-width: 850px) { .columns { grid-template-columns: 1fr; } section { padding: 14px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Hospital de los Costeños</h1>
+    <p>Gestión de pacientes con narcolepsia · Panel interactivo en Go</p>
+  </header>
+  <main>
+    <div class="stats">
+      <div class="stat"><strong id="total">0</strong><span>Pacientes</span></div>
+      <div class="stat"><strong id="pasillo">0</strong><span>Dormidos en pasillo</span></div>
+      <div class="stat"><strong id="camas">0</strong><span>Camas disponibles</span></div>
+      <div class="stat"><strong id="graves">0</strong><span>Pacientes severos</span></div>
+    </div>
+    <div id="mensaje" role="status" aria-live="polite">Cargando información del hospital…</div>
+    <div class="columns">
+      <section>
+        <div class="toolbar"><h2>Pacientes</h2><button class="secondary" id="actualizar">Actualizar</button></div>
+        <table><thead><tr><th>ID</th><th>Nombre</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="tablaPacientes"></tbody></table>
+      </section>
+      <section>
+        <h2>Habitaciones</h2>
+        <table><thead><tr><th>Número</th><th>Ocupación</th><th>Estado</th></tr></thead><tbody id="tablaHabitaciones"></tbody></table>
+        <h2 style="margin-top:24px">Reporte de severidad</h2>
+        <table><thead><tr><th>Paciente</th><th>Episodios hoy</th></tr></thead><tbody id="tablaSeveros"></tbody></table>
+      </section>
+    </div>
+    <section>
+      <h2>Historial por médico</h2>
+      <label for="medico">Médico:</label>
+      <select id="medico"></select>
+      <button id="consultar">Consultar episodios</button>
+      <div id="episodios">Selecciona un médico para consultar sus atenciones.</div>
+    </section>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    async function solicitud(ruta, opciones) {
+      const respuesta = await fetch(ruta, opciones);
+      let datos;
+      try { datos = await respuesta.json(); } catch { throw new Error('Respuesta inválida del servidor'); }
+      if (!respuesta.ok) throw new Error(datos.error || `Error HTTP ${respuesta.status}`);
+      return datos;
+    }
+    function mensaje(texto, error = false) {
+      $('mensaje').textContent = texto;
+      $('mensaje').classList.toggle('error', error);
+    }
+    function celda(fila, valor) { const td = document.createElement('td'); td.textContent = String(valor); fila.appendChild(td); return td; }
+    async function cargar() {
+      try {
+        const [pacientes, habitaciones, graves, medicos] = await Promise.all([
+          solicitud('/api/pacientes'), solicitud('/api/habitaciones'),
+          solicitud('/api/reportes/severos'), solicitud('/api/medicos')
+        ]);
+        $('total').textContent = pacientes.length;
+        $('pasillo').textContent = pacientes.filter(p => p.estado === 'DormidoEnPasillo').length;
+        $('camas').textContent = habitaciones.reduce((s, h) => s + h.capacidad - h.ocupantes, 0);
+        $('graves').textContent = Object.keys(graves).length;
+        const cuerpo = $('tablaPacientes'); cuerpo.replaceChildren();
+        pacientes.forEach(p => {
+          const tr = document.createElement('tr'); celda(tr, p.id); celda(tr, p.nombre);
+          const estado = celda(tr, p.estado); estado.className = p.estado === 'DormidoEnPasillo' ? 'tag sleep' : p.estado === 'DormidoEnCama' ? 'tag bed' : 'tag';
+          const acciones = document.createElement('td'); acciones.className = 'actions';
+          const ataque = document.createElement('button'); ataque.textContent = 'Ataque'; ataque.disabled = p.estado !== 'Despierto';
+          ataque.addEventListener('click', () => accion(p.id, 'ataque'));
+          const despertar = document.createElement('button'); despertar.textContent = 'Despertar'; despertar.className = 'secondary'; despertar.disabled = p.estado === 'Despierto';
+          despertar.addEventListener('click', () => accion(p.id, 'despertar'));
+          acciones.append(ataque, despertar); tr.appendChild(acciones); cuerpo.appendChild(tr);
+        });
+        const lista = $('tablaHabitaciones'); lista.replaceChildren();
+        habitaciones.forEach(h => { const tr = document.createElement('tr'); celda(tr, h.numero); celda(tr, `${h.ocupantes}/${h.capacidad}`); celda(tr, h.estado); lista.appendChild(tr); });
+        const tablaSeveros = $('tablaSeveros'); tablaSeveros.replaceChildren();
+        Object.entries(graves).sort(([a], [b]) => a.localeCompare(b)).forEach(([id, total]) => { const tr = document.createElement('tr'); celda(tr, id); celda(tr, total); tablaSeveros.appendChild(tr); });
+        const seleccion = $('medico'); const previo = seleccion.value; seleccion.replaceChildren();
+        medicos.forEach(m => { const op = document.createElement('option'); op.value = m.id; op.textContent = `${m.nombre} (${m.especialidad})`; seleccion.appendChild(op); });
+        if (medicos.some(m => m.id === previo)) seleccion.value = previo;
+        mensaje('Información actualizada. Puedes provocar ataques y despertar pacientes.');
+      } catch (e) { mensaje(e.message, true); }
+    }
+    async function accion(id, tipo) {
+      try {
+        let opciones = { method: 'POST' };
+        if (tipo === 'ataque') {
+          const ubicacion = prompt('¿Dónde ocurrió el ataque de sueño?', 'sala de espera');
+          if (ubicacion === null) return;
+          if (!ubicacion.trim()) { mensaje('La ubicación es obligatoria.', true); return; }
+          opciones.headers = { 'Content-Type': 'application/json' };
+          opciones.body = JSON.stringify({ ubicacion: ubicacion.trim() });
+        }
+        const resultado = await solicitud(`/api/pacientes/${encodeURIComponent(id)}/${tipo}`, opciones);
+        await cargar(); mensaje(resultado.aviso || resultado.episodio || resultado.resultado);
+      } catch (e) { mensaje(e.message, true); }
+    }
+    async function consultar() {
+      const id = $('medico').value; if (!id) return;
+      try { const datos = await solicitud(`/api/medicos/${encodeURIComponent(id)}/episodios`);
+        $('episodios').textContent = datos.length ? datos.map(e => e.resumen).join('\n') : 'Este médico aún no tiene episodios registrados.';
+      } catch (e) { mensaje(e.message, true); }
+    }
+    $('actualizar').addEventListener('click', cargar);
+    $('consultar').addEventListener('click', consultar);
+    cargar();
+  </script>
+</body>
+</html>
